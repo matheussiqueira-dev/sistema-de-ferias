@@ -16,3 +16,6 @@ npm-debug.log*
 
 # Frontend assets (logo provided externally)
 frontend/assets/logo-jaboatao.png
+
+# Local plugin data
+.cto-toolkit/
