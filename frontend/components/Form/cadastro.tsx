@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { API_URL } from "../../lib/http";
 import Header from "../Header";
 import Input from "../input/input";
 import MatriculaInput from "../input/matriculaInput";
@@ -31,8 +32,9 @@ const CadastroFuncionario: React.FC = () => {
     e.preventDefault();
 
     try {
-      const response = await fetch("http://localhost:3001/register", {
+      const response = await fetch(`${API_URL}/register`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           matricula: form.MATRICULA,

@@ -3,11 +3,12 @@
 import React, { useState } from "react";
 import Header from "../components/Header";
 import Input from "./input/input";
-import axios from "axios";
+import { api } from "../lib/http";
 import { useRouter } from "next/navigation";
 
-const AlterarSenha: React.FC<{ matricula: string }> = ({ matricula }) => {
+const AlterarSenha: React.FC = () => {
   const [form, setForm] = useState({
+    senhaAtual: "",
     novaSenha: "",
     confirmeSenha: ""
   });
@@ -30,13 +31,13 @@ const AlterarSenha: React.FC<{ matricula: string }> = ({ matricula }) => {
     }
 
     try {
-      await axios.post("http://localhost:3001/nova-senha", {
-        matricula,
+      await api.post("/nova-senha", {
+        senhaAtual: form.senhaAtual,
         novaSenha: form.novaSenha
       });
 
       alert("Senha alterada com sucesso!");
-      router.push("/login"); // redireciona para login
+      router.push("/login");
     } catch (error) {
       console.error(error);
       alert("Erro ao alterar a senha.");
@@ -52,6 +53,16 @@ const AlterarSenha: React.FC<{ matricula: string }> = ({ matricula }) => {
         </h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="password"
+            id="senhaAtual"
+            name="senhaAtual"
+            placeholder="Digite a senha atual"
+            value={form.senhaAtual}
+            onChange={handleChange}
+            required
+          />
+
           <Input
             type="password"
             id="novaSenha"

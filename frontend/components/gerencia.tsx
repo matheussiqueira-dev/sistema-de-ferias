@@ -1,7 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react';
 import Header from './Header';
-import axios from 'axios';
+import { api } from '../lib/http';
 import { parseISO, format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -81,15 +81,15 @@ const Gerencias: React.FC = () => {
   };
 
   useEffect(() => {
-    axios.get('http://localhost:3001/gerencias')
+    api.get('/gerencias')
       .then(res => setGerencias(res.data))
       .catch(err => console.error('Erro ao buscar gerências:', err));
 
-    axios.get('http://localhost:3001/gerencias/funcionarios')
+    api.get('/gerencias/funcionarios')
       .then(res => setFuncionarios(res.data))
       .catch(err => console.error('Erro ao buscar funcionários:', err));
 
-    axios.get('http://localhost:3001/gerencias/emferias')
+    api.get('/gerencias/emferias')
       .then(res => setFuncionariosEmFerias(res.data))
       .catch(err => console.error('Erro ao buscar funcionários em férias:', err));
   }, []);

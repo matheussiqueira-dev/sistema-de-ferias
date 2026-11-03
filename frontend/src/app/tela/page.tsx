@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import DashboardCard from "./../../../components/DashboardCard";
 import Header from "./../../../components/Header";
 import axios, { AxiosResponse } from "axios";
+import { api } from "../../../lib/http";
 
 interface DashboardData {
   totalFuncionarios: number;
@@ -24,7 +25,7 @@ interface RawEmployee {
   SALDO?: string | number;
   PERCEPCAO?: string
   // campos extras possíveis:
-  [k: string]: any;
+  [k: string]: string | number | undefined;
 }
 
 interface Employee {
@@ -35,6 +36,11 @@ interface Employee {
   MES_FIM?: string ;
   SALDO?: string | number;
 }
+
+const asText = (value: string | number | undefined): string => (value === undefined ? "" : String(value));
+
+const asTextOrUndefined = (value: string | number | undefined): string | undefined =>
+  value === undefined ? undefined : String(value);
 
 const DashboardPage: React.FC = () => {
   const [data, setData] = useState<DashboardData>({
@@ -57,9 +63,9 @@ const DashboardPage: React.FC = () => {
           feriasMesAtualRes,
           feriasSolicitadasRes
         ] = await Promise.all([
-          axios.get("http://localhost:3001/tela/funcionarios/count"),
-          axios.get("http://localhost:3001/tela/ferias/mes-atual"),
-          axios.get("http://localhost:3001/tela/ferias/solicitacoes")
+          api.get("/tela/funcionarios/count"),
+          api.get("/tela/ferias/mes-atual"),
+          api.get("/tela/ferias/solicitacoes")
         ]);
 
         setData({
@@ -76,34 +82,28 @@ const DashboardPage: React.FC = () => {
   }, []);
 
   // Normaliza diferentes formatos de resposta para array de funcionários
-  const normalizeResponseToEmployees = (res: AxiosResponse<any>): RawEmployee[] => {
+  const normalizeResponseToEmployees = (res: AxiosResponse<unknown>): RawEmployee[] => {
     const d = res?.data;
-    if (!d) return [];
-    if (Array.isArray(d)) return d;
-    if (Array.isArray(d.data)) return d.data;
-    // se o backend retornar { funcionarios: [...] }
-    if (Array.isArray(d.funcionarios)) return d.funcionarios;
-    // se retornar objeto único (um funcionário), transformamos em array
-    if (typeof d === "object") {
-      // tentar extrair arrays de propriedades comuns
-      const possibleArrays = ["items", "results", "rows"];
-      for (const key of possibleArrays) {
-        if (Array.isArray(d[key])) return d[key];
-      }
-      // fallback: se objeto tem chaves de funcionário, colocamos ele só
-      return [d];
+    if (!d || typeof d !== "object") return [];
+    if (Array.isArray(d)) return d as RawEmployee[];
+    const body = d as Record<string, unknown>;
+    // aceita { data }, { funcionarios } e propriedades comuns de listas
+    for (const key of ["data", "funcionarios", "items", "results", "rows"]) {
+      const value = body[key];
+      if (Array.isArray(value)) return value as RawEmployee[];
     }
-    return [];
+    // fallback: se objeto tem chaves de funcionário, colocamos ele só
+    return [body as RawEmployee];
   };
 
   const normalizeEmployee = (raw: RawEmployee): Employee => {
     return {
-      MATRICULA_F: raw.MATRICULA_F ?? raw.matricula ?? raw.MATRICULA ?? raw.id ?? "",
-      NOME: raw.NOME ?? raw.nome ?? raw.NOME_COMPLETO ?? "",
-      SIGLA_GERENCIA: raw.SIGLA_GERENCIA ?? raw.sigla_gerencia ?? raw.gerencia ?? "",
-      MES_INICIO: raw.MES_INICIO ?? raw.mes_inicio ?? raw.MES_INICIO_FORMATADO ?? null,
-      MES_FIM: raw.MES_FIM ?? raw.mes_fim ?? raw.MES_FIM_FORMATADO ?? null,
-      SALDO: raw.SALDO ?? raw.saldo ?? null
+      MATRICULA_F: asText(raw.MATRICULA_F ?? raw.matricula ?? raw.MATRICULA ?? raw.id),
+      NOME: asText(raw.NOME ?? raw.nome ?? raw.NOME_COMPLETO),
+      SIGLA_GERENCIA: asText(raw.SIGLA_GERENCIA ?? raw.sigla_gerencia ?? raw.gerencia),
+      MES_INICIO: raw.MES_INICIO ?? asTextOrUndefined(raw.mes_inicio ?? raw.MES_INICIO_FORMATADO),
+      MES_FIM: raw.MES_FIM ?? asTextOrUndefined(raw.mes_fim ?? raw.MES_FIM_FORMATADO),
+      SALDO: raw.SALDO ?? raw.saldo
     };
   };
 
@@ -111,11 +111,11 @@ const DashboardPage: React.FC = () => {
   const tryEndpoints = async (endpoints: string[]) => {
     for (const url of endpoints) {
       try {
-        const res = await axios.get(url);
+        const res = await api.get(url);
         return res;
-      } catch (err: any) {
+      } catch (err) {
         // 404/other -> tenta próximo
-        console.warn(`Request ${url} falhou:`, err?.response?.status ?? err.message);
+        console.warn(`Request ${url} falhou:`, axios.isAxiosError(err) ? err.response?.status ?? err.message : err);
         continue;
       }
     }
@@ -126,19 +126,19 @@ const DashboardPage: React.FC = () => {
     // Escolhe candidatos por tipo (ordem de tentativa)
     const candidates: Record<string, string[]> = {
       totalFuncionarios: [
-        "http://localhost:3001/tela/funcionarios",
-        "http://localhost:3001/funcionarios",
-        "http://localhost:3001/gerencias/funcionarios"
+        "/tela/funcionarios",
+        "/funcionarios",
+        "/gerencias/funcionarios"
       ],
       feriasMesAtual: [
-        "http://localhost:3001/tela/funcionarios/ferias-mes-atual",
-        "http://localhost:3001/funcionarios/ferias-mes-atual",
-        "http://localhost:3001/gerencias/emferias"
+        "/tela/funcionarios/ferias-mes-atual",
+        "/funcionarios/ferias-mes-atual",
+        "/gerencias/emferias"
       ],
       feriasSolicitadas: [
-        "http://localhost:3001/tela/funcionarios/ferias-solicitadas",
-        "http://localhost:3001/funcionarios/ferias-solicitadas",
-        "http://localhost:3001/soli"
+        "/tela/funcionarios/ferias-solicitadas",
+        "/funcionarios/ferias-solicitadas",
+        "/soli"
       ],
     };
 
@@ -157,7 +157,7 @@ const DashboardPage: React.FC = () => {
     try {
       const emps = await getEmployeesForType(type);
       setEmployees(emps);
-    } catch (err: any) {
+    } catch (err) {
       console.error("Erro ao buscar funcionários:", err);
       setEmployeesError("Não foi possível carregar a lista. Verifique se o backend tem a rota correta.");
     } finally {

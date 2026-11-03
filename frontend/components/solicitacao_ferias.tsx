@@ -1,5 +1,6 @@
 'use client'
 import React, { useState, useEffect } from "react";
+import { api } from "../lib/http";
 import Header from "./Header";
 
 function getErrorMessage(error: unknown): string {
@@ -28,19 +29,20 @@ const SolicitacaoFerias: React.FC = () => {
   });
 
   const [periodos, setPeriodos] = useState<Periodo[]>([]);
-  const matricula = '916286'; // substituir pelo usuário logado
+  const [matricula, setMatricula] = useState("");
 
   useEffect(() => {
-    fetch(`http://localhost:3001/solicitar-ferias/periodos/${matricula}`)
-      .then((res) => res.json())
-      .then((data) => {
+    api
+      .get<{ matricula: string }>("/me")
+      .then(async ({ data }) => {
+        setMatricula(data.matricula);
+        const res = await api.get<Periodo[] | { data?: Periodo[] }>(`/solicitar-ferias/periodos/${data.matricula}`);
         // Filtra apenas períodos em aberto (STATUS = 2)
-        const lista = Array.isArray(data) ? data : Array.isArray(data.data) ? data.data : [];
-        const periodosAbertos = lista.filter((p: Periodo) => p.STATUS === 2);
-        setPeriodos(periodosAbertos);
+        const lista = Array.isArray(res.data) ? res.data : res.data.data ?? [];
+        setPeriodos(lista.filter((p) => p.STATUS === 2));
       })
       .catch((err) => console.error("Erro ao buscar períodos:", err));
-  }, [matricula]);
+  }, []);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -58,13 +60,7 @@ const SolicitacaoFerias: React.FC = () => {
     };
 
     try {
-      const res = await fetch("http://localhost:3001/solicitar-ferias/solicitacao", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) throw new Error("Erro ao enviar solicitação");
+      await api.post("/solicitar-ferias/solicitacao", body);
 
       alert("Solicitação enviada com sucesso!");
       setForm({ dataInicio: "", dataFim: "", periodoAquisitivo: "", dataAno: "" });

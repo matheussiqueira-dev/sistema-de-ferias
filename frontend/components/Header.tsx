@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import Link from "next/link";
+import { api } from "../lib/http";
 import '@fortawesome/fontawesome-free/css/all.min.css';
 
 const Header: React.FC = () => {
@@ -32,10 +35,14 @@ const Header: React.FC = () => {
             </nav>
             <div className="flex items-center space-x-4">
 
-                <Link href="/login" className="flex items-center space-x-2 hover:underline text-[#023472]">
+                <button
+                    type="button"
+                    onClick={() => api.post("/logout").finally(() => window.location.assign("/login"))}
+                    className="flex items-center space-x-2 hover:underline text-[#023472]"
+                >
                     <i className="fas fa-sign-out-alt"></i>
                     <span>Sair</span>
-                </Link>
+                </button>
             </div>
         </header>
     );
