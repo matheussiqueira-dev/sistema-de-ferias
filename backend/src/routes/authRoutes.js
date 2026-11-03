@@ -1,9 +1,13 @@
-import express from 'express'; // Correto: express é um export default
-import { login, alterarSenha } from '../controllers/authController.js'; // Correto: adiciona .js e importa de forma nomeada
+import express from 'express';
+import { alterarSenha, login, logout, me, register } from '../controllers/authController.js';
+import { requireAuth, requireGestor } from '../middleware/auth.js';
 
 const router = express.Router();
 
 router.post('/login', login);
-router.post('/nova-senha', alterarSenha);
+router.post('/logout', logout);
+router.get('/me', requireAuth, me);
+router.post('/nova-senha', requireAuth, alterarSenha);
+router.post('/register', requireAuth, requireGestor, register);
 
-export default router; // Correto: exporta o router como default
+export default router;

@@ -4,7 +4,10 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test --experimental-test-module-mocks \"test/**/*.test.js\"",
+    "test:coverage": "node --test --experimental-test-module-mocks --experimental-test-coverage \"test/**/*.test.js\""
   },
   "keywords": [],
   "author": "",
@@ -12,7 +15,6 @@
   "description": "",
   "dependencies": {
     "@prisma/client": "^6.9.0",
-    "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
     "date-fns": "^4.1.0",
