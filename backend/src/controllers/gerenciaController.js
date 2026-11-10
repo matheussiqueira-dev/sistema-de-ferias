@@ -1,6 +1,4 @@
 import prisma from '../prismaClient.js';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { addDays, getYear } from 'date-fns';
 
 // GET: /gerencias
@@ -91,9 +89,7 @@ export const getFuncionariosComFerias = async (req, res) => {
           f.periodos?.[0]?.PERIODO_AQUISITIVO_EM_ABERTO || null,
         ID_PERIODO: ferias?.ID || null,
         MES_INICIO: ferias?.MES_INICIO,
-        MES_FIM: ferias?.MES_FIM
-          ? format(new Date(ferias.MES), "MMMM", { locale: ptBR }).toLowerCase()
-          : null,
+        MES_FIM: ferias?.MES_FIM ?? null,
 
         SALDO: ferias?.SALDO || null,
         ferias_gozo: ferias || null, // Adicionado para consistência com getTodosFuncionarios
