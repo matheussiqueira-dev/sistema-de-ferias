@@ -1,6 +1,6 @@
 # Plano de Evolução — sistema-de-ferias
 
-> Documento vivo, revisado semanalmente. Última revisão: 2026-11-03.
+> Documento vivo, revisado semanalmente. Última revisão: 2026-11-10.
 > Regra central: nenhuma mudança entra sem estar ligada a um objetivo desta página e sem manter ou melhorar as métricas da seção 2.
 
 ## 1. Identidade do projeto
@@ -17,14 +17,14 @@
 
 | Verificação | Comando | Resultado | Data |
 | --- | --- | --- | --- |
-| Instalação | `npm ci` (backend) / `npm ci` (frontend) | PASS / PASS | 2026-11-03 |
-| Lint | `npm run lint` (frontend) | PASS: 0 erros, 8 avisos (variáveis sem uso e `no-img-element`); backend sem linter | 2026-11-03 |
-| Typecheck | `npx tsc --noEmit` (frontend) | PASS (0 erros) | 2026-11-03 |
-| Testes | `cd backend && npm test` | PASS: 46 passando / 0 falhando (Prisma substituído por mock); frontend sem testes | 2026-11-03 |
-| Cobertura | `npm run test:coverage` (backend) | 63,3% de linhas no total; `middleware/auth.js` e rotas 100%; `controllers` de férias, gerência e painel abaixo de 30% | 2026-11-03 |
-| Build | `npm run build` (frontend) | PASS com respostas de fonte simuladas (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`); build com Google Fonts real não verificado até B8/B10. `npx prisma validate`: não verificado (download dos engines bloqueado) | 2026-11-03 |
-| Vulnerabilidades (audit) | `npm audit` | prod: 0 nos dois pacotes (Next, Express e Axios atualizados pelo dono em 2026-10-28); com dev: backend 0, frontend 16 moderate (`minimatch` via ESLint, GHSA-g3hv-75wg-m249) | 2026-11-03 |
-| CI no GitHub | — | nenhum workflow (B10) | 2026-11-03 |
+| Instalação | `npm ci` (backend) / `npm ci` (frontend) | PASS / PASS | 2026-11-10 |
+| Lint | `npm run lint` (frontend) | PASS: 0 erros, 8 avisos (variáveis sem uso e `no-img-element`); backend sem linter | 2026-11-10 |
+| Typecheck | `npx tsc --noEmit` (frontend) | PASS (0 erros) | 2026-11-10 |
+| Testes | `cd backend && npm test` | PASS: 61 passando / 0 falhando em 2 arquivos (Prisma substituído por mock, dados fictícios); frontend sem testes | 2026-11-10 |
+| Cobertura | `npm run test:coverage` (backend) | 92,3% de linhas no total (métrica do Node, inclui os arquivos de teste); `gerenciaController.js` 100%, `feriasService.js` 96,3%, `dashboardController.js` 70,5%, `feriasController.js` 30,8% (criação de solicitação depende de B14) | 2026-11-10 |
+| Build | `npm run build` (frontend) | PASS com respostas de fonte simuladas (`NEXT_FONT_GOOGLE_MOCKED_RESPONSES`); build com Google Fonts real não verificado até B8/B10. `npx prisma validate`: não verificado | 2026-11-10 |
+| Vulnerabilidades (audit) | `npm audit` | prod: 0 nos dois pacotes; com dev: backend 0, frontend 8 moderate (`minimatch` via ESLint, GHSA-g3hv-75wg-m249) | 2026-11-10 |
+| CI no GitHub | — | nenhum workflow (B10) | 2026-11-10 |
 
 Observações: **este documento descreve falhas e não deve ser publicado; o repositório está privado (conferido na API do GitHub em 2026-11-03).** Desde 2026-11-03 a API exige sessão: cookie HttpOnly com JWT, `JWT_SECRET` obrigatório na inicialização e `GESTOR_TIPOS_USUARIO` com os IDs de `tipo_user` de gestão. Sem esse valor ninguém acessa painel, gerências nem cadastro: os IDs não estão no repositório e precisam vir do dono (seção 9). Nenhum fluxo foi exercitado contra banco real; a integração entre frontend e API foi conferida por tipos e build, sem navegador. As descrições abaixo são da baseline de 2026-10-23 e ainda valem onde não citam autenticação. Por leitura do código: `POST /nova-senha` (`backend/src/routes/authRoutes.js:7` → `authController.js:40-73`) troca a senha de qualquer matrícula sem senha atual e registra a senha recebida em texto puro no log (`authController.js:47-48`); `POST /register` (`server.js:80`) é público; rotas de gerências e painel devolvem nome e matrícula sem autenticação; o login distingue usuário inexistente de senha errada (enumeração); a rota `/login` está duplicada (`server.js:33` e `:38`); `server.js:23-26` registra todas as URLs. O README descreve uma versão anterior (backend TypeScript, frontend estático, compose e seed) que só existe no histórico, e contém contas por papel com senha e credenciais do Adminer. Há dados institucionais reais no HEAD (nome do órgão, siglas e lista de gerências, logotipo em `frontend/public/` e `frontend/assets/`) e uma matrícula fixa em `frontend/components/solicitacao_ferias.tsx:31`; nenhum valor é reproduzido aqui. `nova-senha/page.tsx` e `periodo-aquisitivo/page.tsx` estão vazios. Nenhuma rota foi executada contra banco.
 
@@ -48,7 +48,7 @@ Cada objetivo tem métrica, baseline e meta. Atingida a meta, o objetivo sai do 
 | O1 | Segurança | Eliminar a exposição pública e as falhas exploráveis | rotas sensíveis sem autenticação; segredos/credenciais no HEAD e no histórico | todas as rotas abertas; credenciais no README e no histórico | 0 rotas sensíveis abertas; repositório privado ou histórico purgado (decisão do dono) | P0 | monitorado (meta atingida em 2026-11-03, `03a00b4`: 14 rotas com sessão testadas; repositório privado) |
 | O2 | Funcionamento | Build e typecheck verdes | `npm run build`, `tsc --noEmit`, `npm run lint` | FAIL / 1 erro / 11 erros | PASS / 0 / 0 | P0 | monitorado (meta atingida em 2026-11-03, `56446c0`; build com fonte simulada) |
 | O3 | Segurança | Dependências sem vulnerabilidade crítica | critical+high (prod) | backend 10, frontend 7 | 0 critical e 0 high nos dois pacotes | P1 | monitorado (meta atingida em 2026-10-28, `fe4ab18` e `13c7289`) |
-| O4 | Cobertura de testes | Testar regras de férias e autorização | nº de testes; cobertura de `feriasService.js` e controllers | 46 testes; 63,3% (2026-11-03) | ≥ 20 testes; ≥ 70% de linhas no backend | P1 | ativo |
+| O4 | Cobertura de testes | Testar regras de férias e autorização | nº de testes; cobertura de `feriasService.js` e controllers | 46 testes; 63,3% (2026-11-03) | ≥ 20 testes; ≥ 70% de linhas no backend | P1 | monitorado (meta atingida em 2026-11-10, `9373853`: 61 testes, 92,3% de linhas) |
 | O5 | Qualidade/Manutenibilidade | README e manifests verdadeiros | divergências entre README e código; dependências sem uso | README de versão removida; 5 dependências sem uso | README descreve o código atual; 0 dependências sem uso | P2 | ativo |
 | O6 | Dados e privacidade | Nenhum dado institucional ou pessoal real no repositório | ocorrências de nome do órgão, siglas, logotipo e matrícula fixa | presentes no HEAD | 0 ocorrências (dados fictícios) se o projeto for publicado | P0 | ativo |
 
@@ -75,10 +75,10 @@ Cada objetivo tem métrica, baseline e meta. Atingida a meta, o objetivo sai do 
 - [x] **B6 (P0, O2)** (2026-11-03, `abfa6dc`, `56446c0`) Corrigir os 11 erros de lint, o erro de tipos em `alterar-senha/page.tsx` e as páginas vazias (`nova-senha`, `periodo-aquisitivo`) — `npm run lint`, `tsc --noEmit` e `npm run build` com exit 0.
 - [x] **B7 (P1, O3)** (2026-10-28, `fe4ab18`, `13c7289`; `bcrypt` removido em 2026-11-03, `03a00b4`) Atualizar dependências na mesma major (`express` 4.x, `next` 15.5.x, `axios`, `form-data`) e remover `bcrypt` em favor de `bcryptjs` — `npm audit --omit=dev` com 0 critical e 0 high nos dois pacotes.
 - [ ] **B8 (P1, O2)** Trocar `next/font/google` por fontes locais — `npm run build` sem acesso a `fonts.googleapis.com`.
-- [ ] **B9 (P1, O4)** Testes do backend (Node test runner + supertest) para cálculo de períodos em `feriasService.js` e decisões de aprovação — ≥ 20 testes verdes sem banco real (Prisma mockado).
+- [x] **B9 (P1, O4)** (2026-11-10, `9373853`; 15 testes novos em `backend/test/gestao.test.js` com `node --test` e `mock.module`, sem supertest) Testes do backend (Node test runner + supertest) para cálculo de períodos em `feriasService.js` e decisões de aprovação — ≥ 20 testes verdes sem banco real (Prisma mockado).
 - [ ] **B10 (P1, O2)** Criar CI com jobs `api` (testes, audit) e `web` (lint, typecheck, build) — dois jobs verdes no PR.
-- [ ] **B11 (P2, O5)** Reescrever o README para o código atual (Next.js + Express JS), sem credenciais, e remover dependências sem uso (`jsonwebtoken` até B2, `@prisma/client`, `prisma`, `cors` no frontend) — README conferido contra `package.json`; `npx depcheck` sem itens não usados.
-- [ ] **B12 (P2, O5)** Montar ou remover `solicitacaoRoutes.js` (import sem extensão, `prisma` não importado) e corrigir `gerenciaController.js:94-95` (`ferias.MES` inexistente) — teste de rota cobre o caminho corrigido.
+- [ ] **B11 (P2, O5)** (parcial em 2026-11-10, `f7c66cb`: `@prisma/client`, `prisma` e `cors` removidos do frontend; README pendente, junto de B5) Reescrever o README para o código atual (Next.js + Express JS), sem credenciais, e remover dependências sem uso (`jsonwebtoken` até B2, `@prisma/client`, `prisma`, `cors` no frontend) — README conferido contra `package.json`; `npx depcheck` sem itens não usados.
+- [ ] **B12 (P2, O5)** (parcial em 2026-11-10, `9373853`: `GET /gerencias/:sigla/funcionarios` respondia 500 sempre que havia férias, porque formatava um campo inexistente; agora devolve `MES_FIM` como data, igual a `/gerencias/emferias`, com teste; `solicitacaoRoutes.js` continua sem montar) Montar ou remover `solicitacaoRoutes.js` (import sem extensão, `prisma` não importado) e corrigir `gerenciaController.js:94-95` (`ferias.MES` inexistente) — teste de rota cobre o caminho corrigido.
 - [ ] **B14 (P1, O1)** Corrigir `criarSolicitacaoFerias`, que grava em `periodos` campos inexistentes no schema (`MATRICULA`, `PERIODO_AQUISITIVO`, `DIAS_SOL`, `MES`, `ANO`), e validar datas no servidor — teste de rota com Prisma mockado confere o payload contra o schema; solicitação concluída em banco descartável.
 - [ ] **B15 (P1, O1)** Limitar tentativas de login por IP e matrícula — teste recebe 429 após o limite.
 - [ ] **B13 (P3, O5)** Limpar resíduos de template (`layout.tsx`, `frontend/README.md`, `next.config.ts`, `postcss.config` duplicado) e corrigir `package.json` do backend (`name`, `license` MIT, scripts `dev`/`start`) — arquivos coerentes com o `LICENSE`.
@@ -89,6 +89,8 @@ Itens a pesquisar e reavaliar toda semana (novas versões, bibliotecas, prática
 
 | Data | Item | Fonte | Veredito (adotar / avaliar / descartar) | Motivo |
 | --- | --- | --- | --- | --- |
+| 2026-11-10 | Next.js 15.5.29 (lock em 15.5.28) | https://www.npmjs.com/package/next | avaliar | patch da linha atual; `npm audit --omit=dev` sem aviso; aplicar no próximo ciclo de dependências |
+| 2026-11-10 | `@prisma/client` 7.10.1; a tag `latest` do CLI aponta para 8.0.0-rc.33 | https://github.com/prisma/prisma/releases | avaliar | majors; seguem dependentes de banco descartável e aprovação |
 | 2026-11-03 | Prisma 7.10 (lock em 6.9.0) | https://github.com/prisma/orm/releases/tag/7.10.0 | avaliar | major; só com banco descartável e aprovação |
 | 2026-11-03 | Next.js 16.4.4 e Express 5.3.0 (lock em 15.5.28 e 4.22.3) | https://www.npmjs.com/package/next | avaliar | majors; sem aviso aberto nas linhas atuais |
 | 2026-11-03 | `node --test` com `mock.module` | https://nodejs.org/api/test.html | adotado | testes de rota sem dependência nova (no lugar de supertest) |
@@ -116,6 +118,7 @@ Itens a pesquisar e reavaliar toda semana (novas versões, bibliotecas, prática
 - Existe fork ou clone público que exija pedido de remoção ao GitHub?
 - As contas e a senha do README existiram em algum ambiente real (trocar antes de qualquer outra ação)?
 - O projeto entra no portfólio depois de sanitizado?
+- B15 (limite de tentativas de login) está ligado a O1, já monitorado: reabrir O1 para executá-lo no próximo ciclo?
 - Aprova a purga do histórico e os upgrades de dependências listados em B7?
 
 ## 10. Registro semanal
@@ -124,3 +127,4 @@ Itens a pesquisar e reavaliar toda semana (novas versões, bibliotecas, prática
 | --- | --- | --- | --- | --- |
 | 2026-10-23 | Documento inicial e baseline | — | ver seção 2 | O1/B1 |
 | 2026-11-03 | install, lint, tipos, build com fonte simulada e audit; sem feature (guardrail: só segurança) | `03a00b4` sessão, papéis e troca de senha; `abfa6dc` frontend com cookie; `56446c0` build restaurado | testes 0 → 46; lint 11 → 0 erros; typecheck 1 → 0; build FAIL → PASS; prod 0 vulnerabilidades | B5, B14, B8–B10; IDs de gestão aguardam o dono |
+| 2026-11-10 | install, testes com cobertura, lint, tipos, build com fonte simulada e audit nos dois pacotes; sem feature (guardrail: só segurança e correção até a decisão de visibilidade) | `9373853` data final das férias por gerência e testes de gestão; `f7c66cb` dependências sem uso do frontend | testes 46 → 61; cobertura 63,3% → 92,3%; dev audit frontend 16 → 8 moderate | B14, B12 (rota de solicitação), B15 (aguarda reabrir O1); B5 e IDs de gestão aguardam o dono |
