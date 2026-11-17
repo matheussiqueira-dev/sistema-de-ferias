@@ -1,70 +1,79 @@
-# Sistema de Férias — Prefeitura do Jaboatão dos Guararapes
+# Sistema de Férias
 
-Aplicação completa para solicitação e gestão de férias de servidores:
-- Servidor solicita período em calendário.
-- Gerente aprova/reprova e registra observação.
-- Notificações para Servidor e Secretário Executivo.
-- Secretário acompanha controle geral.
+Sistema interno para solicitação e acompanhamento de férias de servidores:
+
+- o servidor consulta seus períodos aquisitivos em aberto e solicita férias;
+- a gestão acompanha o painel (servidores, férias do mês, agendadas e solicitadas), as gerências e quem está em férias;
+- a gestão cadastra acessos e gera períodos aquisitivos.
 
 ## Stack
-- Backend: Node.js + Express + TypeScript + Prisma (PostgreSQL)
-- Frontend: HTML/CSS/JS estático (calendário com Flatpickr, inline)
-- Banco: Postgres (Docker) + Adminer (opcional)
+
+- **API** (`backend/`): Node.js 22 (ESM, JavaScript), Express 4, Prisma 6 com PostgreSQL (schema `sist_ferias`), `bcryptjs`, `jsonwebtoken` e `date-fns`. Testes com o test runner nativo do Node (`node --test`), com o Prisma substituído por mock.
+- **Web** (`frontend/`): Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 3, Axios e Font Awesome.
+
+A sessão fica em cookie HttpOnly assinado com JWT. O frontend envia o cookie em todas as chamadas (`withCredentials`).
 
 ## Requisitos
-- Node 18+
-- Docker Desktop (para Postgres)
-- npm
 
-## Configuração
+- Node.js 22 e npm
+- PostgreSQL com o schema `sist_ferias` (estrutura em `backend/prisma/schema.prisma`)
+
+## Configuração da API
+
 ```bash
 cd backend
-# instalar dependências
-npm install
-# copiar variáveis de ambiente
-copy .env.example .env  # Windows
-# ou: cp .env.example .env
-```
-Ajuste `DATABASE_URL` se necessário.
-
-## Subir Banco (Docker)
-```bash
-# Com Docker Desktop aberto
-docker compose up -d db
-```
-Adminer (opcional): http://localhost:8080 (system: PostgreSQL; servidor: db; user: postgres; senha: postgres; db: ferias)
-
-## Prisma (gerar, migrar, seed)
-```bash
-npm run prisma_generate
-npx prisma migrate dev --name init
-npm run seed
+npm ci
+cp .env.example .env
 ```
 
-## Rodar API + Frontend
+Variáveis (ver `backend/.env.example`):
+
+| Variável | Uso |
+| --- | --- |
+| `DATABASE_URL` | conexão PostgreSQL |
+| `JWT_SECRET` | obrigatório; a API não inicia sem ele |
+| `GESTOR_TIPOS_USUARIO` | IDs de `tipo_user` com acesso de gestão, separados por vírgula; vazio bloqueia a gestão |
+| `CORS_ORIGIN` | origem do frontend (padrão `http://localhost:3000`) |
+| `PORT` | porta da API (padrão `3001`) |
+
+Nunca versione o `.env`.
+
+## Execução local
+
 ```bash
+# API (porta 3001)
+cd backend
+npm run dev
+
+# Web (porta 3000)
+cd frontend
+npm ci
 npm run dev
 ```
-Acesse: http://localhost:3000
 
-Contas seed:
-- Servidor: servidor@jaboatao.pe.gov.br / senha123
-- Gerente:  gerente@jaboatao.pe.gov.br / senha123
-- Secretário: exec@jaboatao.pe.gov.br / senha123
+O frontend usa `NEXT_PUBLIC_API_URL` (padrão `http://localhost:3001`) para chegar à API.
 
-## Logo e Cores
-Coloque a logo oficial em `frontend/assets/logo-jaboatao.png`.
-A paleta utiliza tons de azul primário/escuro e detalhes em amarelo/verde.
+## Verificações
 
-## Scripts úteis
-- `npm run prisma_studio` → abre o Prisma Studio
-- `npm run build && npm start` → build TS e inicia em JS
+```bash
+cd backend && npm test            # testes da API
+cd backend && npm run test:coverage
+cd frontend && npm run lint
+cd frontend && npx tsc --noEmit
+cd frontend && npm run build
+```
 
-## Rotas principais
-- Auth: `POST /auth/register`, `POST /auth/login`
-- Usuários: `GET /users/me`, `GET /users/managers`, `GET /users/executives`
-- Férias: `POST /ferias`, `GET /ferias/mine`, `GET /ferias/pending`, `POST /ferias/:id/decide`, `GET /ferias/all`, `GET /ferias/history/:id`
-- Notificações: `GET /notifications`, `POST /notifications/:id/read`
+## Rotas da API
 
----
-Se quiser, posso adicionar envio de e-mail nas decisões e relatórios (CSV/PDF).
+| Método e caminho | Acesso |
+| --- | --- |
+| `POST /login`, `POST /logout` | público |
+| `GET /me`, `POST /nova-senha` | sessão |
+| `POST /register` | gestão |
+| `GET /solicitar-ferias/periodos/:matricula`, `POST /solicitar-ferias/solicitacao` | o próprio servidor ou a gestão |
+| `GET /tela/funcionarios/count`, `GET /tela/ferias/mes-atual`, `GET /tela/ferias/agendadas`, `GET /tela/ferias/solicitacoes` | gestão |
+| `GET /gerencias`, `GET /gerencias/funcionarios`, `GET /gerencias/emferias`, `GET /gerencias/:sigla/funcionarios`, `POST /gerencias/gerar-periodos` | gestão |
+
+## Licença
+
+MIT. Ver `LICENSE`.
