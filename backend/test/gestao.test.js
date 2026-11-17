@@ -270,3 +270,13 @@ describe('períodos válidos do servidor', () => {
     assert.equal((await get('/solicitar-ferias/periodos/9001', SERVIDOR_COOKIE)).status, 500);
   });
 });
+
+describe('rotas antigas de solicitação', () => {
+  it('não expõe as rotas do arquivo removido', async () => {
+    assert.equal((await get('/soli/ferias')).status, 404);
+    assert.equal((await post('/soli/ferias')).status, 404);
+    assert.equal((await post('/aprove/solicitacao/1')).status, 404);
+    assert.equal((await post('/reje/sol/1')).status, 404);
+    assert.equal(prisma.periodos.create.mock.callCount(), 0);
+  });
+});
